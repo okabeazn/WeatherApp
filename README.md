@@ -1,6 +1,10 @@
-# weatherapp
+# WeatherApp
 
-A new Flutter project.
+Project based on Merci Codes tutorial
+
+Dependencies:
+
+http: ^0.13.5
 
 ## Getting Started
 
