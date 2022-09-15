@@ -5,6 +5,8 @@ Project based on Merci Codes tutorial
 Dependencies:
 
 http: ^0.13.5
+geolocator: ^9.0.1
+geocoding: ^2.0.5
 
 ## Getting Started
 
