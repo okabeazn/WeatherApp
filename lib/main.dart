@@ -1,8 +1,10 @@
+// import 'dart:html';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:developer' as devtools show log;
-
+import 'dart:io' as dartio;
 void main() {
   runApp(WeatherApp());
 }
@@ -15,16 +17,26 @@ class WeatherApp extends StatefulWidget {
 }
 
 class _WeatherAppState extends State<WeatherApp> {
-  double temperature = 0;
+  double ?temperature;
   String location = "Cali";
-  int woeid=2487956;
-  String weather='clear';
-  String newApiUrl='http://api.weatherapi.com/v1/current.json?key=f5994c939c674eb6a0e153457221409&q=';
-  
+  int woeid = 2487956;
+  String weather = 'clear';
+  String newApiUrl =
+      'http://api.weatherapi.com/v1/current.json?key=f5994c939c674eb6a0e153457221409&q=';
+  String iconstate = "//cdn.weatherapi.com/weather/64x64/night/116.png";
+  String weatherDescription = "Partly cloudly";
+  String ?errorMessage;
+
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    newFetchSearh(location);
+  }
 
   // String searchApiUrl='https://wwww.metaweather.com/api/location/search/?query=';
   // String locationApiUrl='https://wwww.metaweather.com/api/location';
-
 
   //  // Not used due to the service is not working anymore
   // void fetchSearh(String input) async{
@@ -38,7 +50,7 @@ class _WeatherAppState extends State<WeatherApp> {
   //     // woeid=result["woeid"];
   //   });
   // }
-  
+
   // Not used due to the service is not working anymore
   // void fetchLocation()async{
   //   // // var locationResult=await http.get(Uri.parse(locationApiUrl+woeid.toString()));
@@ -54,51 +66,66 @@ class _WeatherAppState extends State<WeatherApp> {
 
   // }
 
-  String background(int state){
-    if(state>=1003 && state<=1006 ){
+  String background(int state) {
+    if (state >= 1003 && state <= 1006) {
       return "lightcloud";
     }
-    if((state>=1009 && state<=1030 )||(state>=1135 && state<=1147 )){
-      return "heaycloud";
+    if ((state >= 1009 && state <= 1030) || (state >= 1134 && state <= 1147)) {
+      return "heavycloud";
     }
-    if((state==1063)||(state>=1150 && state<=1180 )){
+    if ((state == 1063) || (state >= 1150 && state <= 1180)) {
       return "showers";
     }
-    if((state>=1066 && state<=1072) || (state>=1114 && state<=1117 ) || (state>=1198 && state<=1225 )){
+    if ((state >= 1066 && state <= 1072) ||
+        (state >= 1114 && state <= 1117) ||
+        (state >= 1198 && state <= 1225)) {
       return "snow";
     }
-    if((state==1087)||(state>=1273 && state<=1282 )){
+    if ((state == 1087) || (state >= 1273 && state <= 1282)) {
       return "thunderstorm";
     }
-    if((state>=1183 && state<=1189 )||(state>=1243 && state<=1246 )){
+    if ((state >= 1183 && state <= 1189) || (state >= 1243 && state <= 1246)) {
       return "lightrain";
     }
-    if(state>=1192 && state<=1195 ){
+    if (state >= 1192 && state <= 1195) {
       return "heavyrain";
     }
-    if((state>=1237 && state<=1240 )||(state>=1249 && state<=1264 )){
+    if ((state >= 1237 && state <= 1240) || (state >= 1249 && state <= 1264)) {
       return "hail";
     }
     return "clear";
   }
 
   //Using the another API
-  void newFetchSearh(String input) async{
-      var serchResult=await http.get(Uri.parse(newApiUrl + input));
-      var result=json.decode(serchResult.body);
-      // devtools.log(newApiUrl + input);
-      // devtools.log(result["current"]["temp_c"].toString());
+  Future <void> newFetchSearh(String input) async {
+    try{
+    var serchResult = await http.get(Uri.parse(newApiUrl + input));
+    var result = json.decode(serchResult.body);
+    // devtools.log(newApiUrl + input);
+    // devtools.log(result["current"]["temp_c"].toString());
+    setState(() {
+      location =
+          result["location"]["name"] + ", " + result["location"]["country"];
+      temperature = result["current"]["temp_c"];
+      weather = background(result["current"]["condition"]["code"]);
+      iconstate = result["current"]["condition"]["icon"];
+      weatherDescription = result["current"]["condition"]["text"];
+      // devtools.log(result["current"]["condition"].toString());
+      // devtools.log(weather);
+      errorMessage='';
+      // woeid=result["woeid"];
+    });
+    }
+    catch(error){
       setState(() {
-        location=result["location"]["name"];
-        temperature=result["current"]["temp_c"];
-        weather=background(result["current"]["condition"]["code"]);
-        devtools.log(result["current"]["condition"].toString());
-        devtools.log(weather);
-        // woeid=result["woeid"];
+              errorMessage="Sorry, we don't have data about this city, Try another one";
+
       });
     }
-  void onTextFieldSubmitted(String input){
-     newFetchSearh(input);
+  }
+
+  void onTextFieldSubmitted(String input) async{
+    await newFetchSearh(input);
     // fetchSearh(input);
     // fetchLocation();
   }
@@ -113,46 +140,64 @@ class _WeatherAppState extends State<WeatherApp> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Center(
-                child: Column(
-                  children: [
-                    Text("$temperature °C",
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 60)),
-                    Text(
-                      location,
-                      style: const TextStyle(color: Colors.white, fontSize: 40),
+        child: temperature == null
+            ? Center(child: CircularProgressIndicator())
+            : Scaffold(
+                backgroundColor: Colors.transparent,
+                body: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Center(
+                      child: Column(
+                        children: [
+                          Center(
+                              child: Image.network(
+                            "http:$iconstate",
+                            scale: 0.6,
+                          )),
+                          Text("$temperature °C",
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 60)),
+                          Text(
+                            location,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 40),
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            weatherDescription,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontStyle: FontStyle.italic),
+                          )
+                        ],
+                      ),
+                    ),
+                    Column(
+                      children: <Widget>[
+                        Container(
+                          width: 300,
+                          child: TextField(
+                            onSubmitted: (String input) {
+                              onTextFieldSubmitted(input);
+                            },
+                            style: TextStyle(color: Colors.white, fontSize: 25),
+                            decoration: InputDecoration(
+                                hintText: 'Search another location...',
+                                hintStyle: TextStyle(
+                                    color: Colors.white, fontSize: 18),
+                                prefixIcon:
+                                    Icon(Icons.search, color: Colors.white)),
+                          ),
+                        ),
+                        Text(errorMessage??"", textAlign: TextAlign.center, style: TextStyle(color: Colors.redAccent, fontSize: dartio.Platform.isAndroid?15.0:20.0),)
+                      ],
                     )
                   ],
                 ),
               ),
-              Column(
-                children: <Widget>[
-                  Container(
-                    width: 300,
-                    child: TextField(
-                      onSubmitted: (String input){
-                        onTextFieldSubmitted(input);
-                      },
-                      style: TextStyle(color: Colors.white, fontSize: 25),
-                      decoration: InputDecoration(
-                          hintText: 'Search another location...',
-                          hintStyle:
-                              TextStyle(color: Colors.white, fontSize: 18),
-                          prefixIcon: Icon(Icons.search, color: Colors.white)),
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
       ),
     );
   }
